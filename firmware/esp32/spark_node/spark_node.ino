@@ -1,5 +1,5 @@
 /*
- * Mesh Network Node with Tor-like Layered Encryption Protocol
+ * SPARK Network
  * 
  * PROTOCOL BEHAVIOR NOTES:
  * 
