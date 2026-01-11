@@ -1,6 +1,33 @@
 # SPARK
-Foundational exploration of large-scale, user-operated radio mesh networks. SPARK defines early architecture for decentralized identity, sub-mesh formation, and probabilistic routing under real-world radio and adversarial constraints.
+The SPARRK project aims to explore and develop the foundation for large-scale, user-operated radio mesh networks. SPARK defines early architecture for decentralized identity, sub-mesh formation, and probabilistic routing under real-world radio and adversarial constraints.
 
-## Routing Methodology
-The SPARK network uses a structured addressing system inspired by the modern internet, adapted for decentralized radio mesh environments. Nodes are assigned dynamic, ephemeral addresses derived from cryptographic identities, allowing routes to be formed and re-formed without exposing long-term node identity or location. This approach preserves user privacy while enabling efficient, directional packet routing across a constantly changing mesh.
+#### SPARK is in it's earliest stages and is highly experimental. The current implementation focuses on establishing the foundational cryptographic and routing function before optimizing for large scale deployment. At this time, this project is not intended for production use.
 
+## Design Goals
+* Dynamic infrastructure with no global authority
+* Private routing over untrusted intermediate nodes
+* Private identities
+* Redundant and fallback operations under packet loss, retransmission, and node movement
+
+## Address-based Routing
+SPARK uses a cryptographically derived addressing method rather than fixed hardware or positional-based identifiers.
+
+Each node maintains a long-term cryptographic identity. From this identity, nodes derive dynamic, ephemeral addresses that do not reveal the underlying identity. This allows routing decisions to be made without revealing fingerprints or identifiers that could be used for tracking or correlation
+
+### Sub-Mesh Design
+The network is autonomously and dynamically segmented into sub-meshes. These sub-meshes are based on topology, where reliability and trusted nodes are prioritized utilizing a "trust score"
+
+Sub-mesh boundaries also act as routing domains
+* Traffic crossing a boundary incurs additional cryptographic layers, obscuring the identity and route of all data
+* Routing confidence decays with distance from the originating sub-mesh
+* This allows efficient and private routing without any node acquiring global network knowledge
+* Allows for a dynamic and expanding network to thrive without any manual configurations
+
+### Packet Structure and Cryptography
+SPARK packets use a layered encryption model inspired by extsting onion routing protocols, and adapted for mass deployment across hundreds of nodes
+* Inner payloads are AES-CTR encrypted
+* Outer layers utilize AES-GCM for authenticating routing headers
+* Routing headers are intentionally mutable between hops and only authenticated at the outer layer
+* Each layer utilizes unique nonces to prevent keystream reuse and replay
+
+This structire allows intermediate nodes to make routing decisions without having any knowledge as to the origin, destination, or data contents
