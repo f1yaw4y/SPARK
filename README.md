@@ -5,7 +5,7 @@ The SPARK project aims to explore and develop the foundation for large-scale, us
 
 ## Design Goals
 * Dynamic infrastructure with no global authority
-* Private routing over untrusted intermediate nodes
+* Precise and private P2P routing over untrusted intermediate nodes
 * Private identities
 * Redundant and fallback operations under packet loss, retransmission, and node movement
 
