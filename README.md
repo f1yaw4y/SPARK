@@ -1,5 +1,5 @@
 # SPARK
-The SPARRK project aims to explore and develop the foundation for large-scale, user-operated radio mesh networks. SPARK defines early architecture for decentralized identity, sub-mesh formation, and probabilistic routing under real-world radio and adversarial constraints.
+The SPARK project aims to explore and develop the foundation for large-scale, user-operated radio mesh networks. SPARK defines early architecture for decentralized identity, sub-mesh formation, and probabilistic routing under real-world radio and adversarial constraints.
 
 #### SPARK is in it's earliest stages and is highly experimental. The current implementation focuses on establishing the foundational cryptographic and routing function before optimizing for large scale deployment. At this time, this project is not intended for production use.
 
