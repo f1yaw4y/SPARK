@@ -10,6 +10,7 @@ The SPARK project aims to explore and develop the foundation for large-scale, us
 * Precise and private P2P routing over untrusted intermediate nodes
 * Private identities
 * Redundant and fallback operations under packet loss, retransmission, and node movement
+* Capabilities to transmit data reliably across a nationwide or global infrastructrue built of user-owned routers and clients
 
 ## Address-based Routing
 SPARK uses a cryptographically derived addressing method rather than fixed hardware or positional-based identifiers.
