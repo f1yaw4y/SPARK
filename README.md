@@ -34,3 +34,10 @@ SPARK packets use a layered encryption model inspired by extsting onion routing 
 * Each layer utilizes unique nonces to prevent keystream reuse and replay
 
 This structire allows intermediate nodes to make routing decisions without having any knowledge as to the origin, destination, or data contents
+
+### To Do:
+* Finish porting router firmware to RPi
+* Create linking protocol between radios
+* Create ESP32 Client firmware
+* Create ESP32 client UI (android will be prioritized initially)
+* Test basic functionality between a few radios, before simulating network behavior at large scale
