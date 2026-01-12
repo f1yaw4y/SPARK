@@ -41,3 +41,4 @@ This structire allows intermediate nodes to make routing decisions without havin
 * Create ESP32 Client firmware
 * Create ESP32 client UI (android will be prioritized initially)
 * Test basic functionality between a few radios, before simulating network behavior at large scale
+* Create basic router UI for diagnostics, configuring, and updates (should NEVER be required for a user to configure or interact with a router directly)
