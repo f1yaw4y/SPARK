@@ -27,7 +27,7 @@ Sub-mesh boundaries also act as routing domains
 * Allows for a dynamic and expanding network to thrive without any manual configurations
 
 ### Packet Structure and Cryptography
-SPARK packets use a layered encryption model inspired by extsting onion routing protocols, and adapted for mass deployment across hundreds of nodes
+SPARK packets use a layered encryption model inspired by extsting onion routing protocols, and adapted for mass deployment across millions of nodes (theoretically)
 * Inner payloads are AES-CTR encrypted
 * Outer layers utilize AES-GCM for authenticating routing headers
 * Routing headers are intentionally mutable between hops and only authenticated at the outer layer
