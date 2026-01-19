@@ -3,7 +3,7 @@ The SPARK project aims to explore and develop the foundation for large-scale, us
 
 #### SPARK is in it's earliest stages and is highly experimental. The current implementation focuses on establishing the foundational cryptographic and routing function before optimizing for large scale deployment. At this time, this project is not intended for production use.
 
-### The current router firmware is based on the ESP32 platform. However, it is clear that the requirements of a SPARK router are too demanding for an ESP32. Going forward, ESP32's will be only used as clients, and the routing firmware is currently being ported to the Raspberry Pi Zero 2 W, as these processors contain much more RAM, and SRAM. They also have a faster clock speed which will help with encryption speeds, while leaving plenty of headroom for future improvements
+### The current router firmware is based on the ESP32 platform. However, it is clear that the requirements of a SPARK router are too demanding for an ESP32. Going forward, ESP32's will be only used as clients, and the routing firmware has been ported to the Raspberry Pi Zero 2 W, as these processors contain much more RAM, and SRAM. They also have a faster clock speed which will help with encryption speeds, while leaving plenty of headroom for future improvements. Please disregard the EESP32 firmware as it is no longer being developed and is only used as a reference at this point until the port is tested successful on RPi
 
 ## Design Goals
 * Dynamic infrastructure with no global authority
