@@ -1,0 +1,57 @@
+[Unit]
+Description=SPARK Mesh Router Daemon
+Documentation=https://github.com/spark-mesh/spark
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Paths
+RuntimeDirectory=spark
+RuntimeDirectoryMode=0755
+StateDirectory=spark
+StateDirectoryMode=0700
+ConfigurationDirectory=spark
+ConfigurationDirectoryMode=0755
+
+# Execution
+ExecStart=/usr/local/bin/sparkd
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+WatchdogSec=300
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+
+# Allow SPI access for LoRa radio
+DeviceAllow=/dev/spidev0.0 rw
+DeviceAllow=/dev/gpiomem rw
+DeviceAllow=/dev/gpiochip0 rw
+
+# Allow read/write to state and runtime directories
+ReadWritePaths=/var/lib/spark
+ReadWritePaths=/run/spark
+
+# Capabilities
+CapabilityBoundingSet=CAP_NET_RAW CAP_SYS_RAWIO
+AmbientCapabilities=CAP_NET_RAW CAP_SYS_RAWIO
+
+[Install]
+WantedBy=multi-user.target
