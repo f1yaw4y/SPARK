@@ -169,9 +169,7 @@ Spark/
 └── docs/                  # Documentation
 ```
 
-## License
 
-This project is open source. See LICENSE for details.
 
 ## Contributing
 
