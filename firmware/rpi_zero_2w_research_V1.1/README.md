@@ -1,6 +1,6 @@
 # SPARK — Secure Private Autonomous Routing Kernel
 
-**A decentralized, privacy-first mesh networking firmware for Raspberry Pi 5**
+**A decentralized, privacy-first mesh networking firmware for Raspberry Pi 5 and Raspberry Pi Zero 2W**
 
 ***Built for those who need to communicate when traditional infrastructure fails.***
 
