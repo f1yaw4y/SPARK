@@ -9,7 +9,6 @@ SPARK is a purpose-built mesh networking system designed for:
 - **Disaster communications**
 - **Off-grid coordination**
 
-This is NOT a consumer router OS. It is a delay-tolerant, privacy-preserving mesh network node implementing fixed 3-layer onion routing.
 
 ## Design Principles
 
