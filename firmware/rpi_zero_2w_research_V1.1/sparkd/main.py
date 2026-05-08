@@ -404,7 +404,10 @@ class SparkDaemon:
             self._radio.transmit(encrypted)
             return True
         # No link session -- cannot send securely; log and drop
-        logger.debug(f"No link session for {recipient_node_id.hex()[:16]}, dropping packet")
+        logger.warning(
+            "No link session for %s; dropping packet (peer may need fresh handshake)",
+            recipient_node_id.hex()[:16],
+        )
         return False
     
     def _link_broadcast(self, packet: Packet) -> None:
@@ -1112,7 +1115,14 @@ class SparkDaemon:
                 )
                 
                 self._delivery_manager.track_message(message_id, recipient_id)
-                self._link_transmit(recipient_id, wrapped)
+                if not self._link_transmit(recipient_id, wrapped):
+                    return {
+                        "error": (
+                            "No link session with this peer; wait until the "
+                            "mesh re-establishes the encrypted link (or restart "
+                            "sparkd after a cold boot)."
+                        ),
+                    }
                 
                 return {
                     "message_id": message_id.hex(),
@@ -1169,7 +1179,13 @@ class SparkDaemon:
                     ttl=1,
                 )
                 
-                self._link_transmit(recipient_id, wrapped)
+                if not self._link_transmit(recipient_id, wrapped):
+                    return {
+                        "error": (
+                            f"No link session on fragment {idx + 1}/{total}; "
+                            "wait for link to re-establish."
+                        ),
+                    }
                 
                 # Brief pause between fragments to let radio settle
                 if idx < total - 1:
