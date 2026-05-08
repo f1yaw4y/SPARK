@@ -14,6 +14,7 @@ import sys
 import signal
 import time
 import zlib
+import random
 import logging
 import threading
 import argparse
@@ -53,6 +54,13 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("sparkd")
+
+# LoRa is half-duplex and collision-prone; repeat critical link frames so one
+# copy usually gets through (recipient deduplicates on decrypted plaintext).
+LINK_TX_REDUNDANCY = 3
+LINK_TX_REDUNDANCY_GAP_SEC = 0.15
+ACK_TX_REDUNDANCY = 2
+ACK_TX_REDUNDANCY_GAP_SEC = 0.12
 
 # Payload type flags for DirectMessagePayload
 PAYLOAD_COMPRESSED = 0x01   # Payload is zlib-compressed
@@ -409,6 +417,27 @@ class SparkDaemon:
             recipient_node_id.hex()[:16],
         )
         return False
+    
+    def _link_transmit_burst(
+        self,
+        recipient_node_id: bytes,
+        packet: Packet,
+        *,
+        copies: int,
+        gap_sec: float,
+    ) -> bool:
+        """Transmit the same logical packet several times on the link layer.
+        
+        Each attempt uses a fresh ChaCha20 nonce (see LinkSession.encrypt).
+        The peer deduplicates on inner plaintext after decryption.
+        """
+        for i in range(copies):
+            if not self._link_transmit(recipient_node_id, packet):
+                return False
+            if i < copies - 1:
+                jitter = random.uniform(0, gap_sec * 0.35)
+                time.sleep(gap_sec + jitter)
+        return True
     
     def _link_broadcast(self, packet: Packet) -> None:
         """Encrypt and transmit a packet to ALL identified link partners.
@@ -860,7 +889,13 @@ class SparkDaemon:
         )
         
         try:
-            self._link_broadcast(packet)
+            for r in range(ACK_TX_REDUNDANCY):
+                self._link_broadcast(packet)
+                if r < ACK_TX_REDUNDANCY - 1:
+                    time.sleep(
+                        ACK_TX_REDUNDANCY_GAP_SEC
+                        + random.uniform(0, ACK_TX_REDUNDANCY_GAP_SEC * 0.35)
+                    )
             logger.debug(f"Sent delivery ACK for {message_id.hex()[:16]}...")
         except Exception as e:
             logger.debug(f"Failed to send ACK: {e}")
@@ -1115,7 +1150,12 @@ class SparkDaemon:
                 )
                 
                 self._delivery_manager.track_message(message_id, recipient_id)
-                if not self._link_transmit(recipient_id, wrapped):
+                if not self._link_transmit_burst(
+                    recipient_id,
+                    wrapped,
+                    copies=LINK_TX_REDUNDANCY,
+                    gap_sec=LINK_TX_REDUNDANCY_GAP_SEC,
+                ):
                     return {
                         "error": (
                             "No link session with this peer; wait until the "
@@ -1179,7 +1219,12 @@ class SparkDaemon:
                     ttl=1,
                 )
                 
-                if not self._link_transmit(recipient_id, wrapped):
+                if not self._link_transmit_burst(
+                    recipient_id,
+                    wrapped,
+                    copies=LINK_TX_REDUNDANCY,
+                    gap_sec=LINK_TX_REDUNDANCY_GAP_SEC,
+                ):
                     return {
                         "error": (
                             f"No link session on fragment {idx + 1}/{total}; "
