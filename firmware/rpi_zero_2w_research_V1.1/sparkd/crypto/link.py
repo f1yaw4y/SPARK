@@ -190,7 +190,7 @@ def parse_handshake(data: bytes) -> Optional[bytes]:
 
     Returns the 32-byte ephemeral public key, or None if not a handshake.
     """
-    if len(data) < 33:
+    if len(data) != 33:
         return None
     if data[0] != HANDSHAKE_MARKER:
         return None
@@ -238,13 +238,20 @@ def complete_handshake(
 
 
 def is_handshake(data: bytes) -> bool:
-    """Check if raw radio data is a handshake beacon (vs encrypted frame)."""
-    return len(data) >= 33 and data[0] == HANDSHAKE_MARKER
+    """Check if raw radio data is a handshake beacon (vs encrypted frame).
+    
+    Wire format is exactly 33 bytes: marker || ephemeral X25519 pubkey (32).
+    Do not use len(data) >= 33 — link ChaCha20 nonces are random and ~1/256
+    start with the same value as the marker, which would mis-route real data.
+    """
+    return len(data) == 33 and data[0] == HANDSHAKE_MARKER
 
 
 def is_encrypted_frame(data: bytes) -> bool:
-    """Check if raw radio data looks like an encrypted frame."""
-    return len(data) >= LINK_OVERHEAD + 1 and data[0] != HANDSHAKE_MARKER
+    """Check if raw radio data looks like a link-encrypted frame."""
+    if len(data) < LINK_OVERHEAD + 1:
+        return False
+    return not is_handshake(data)
 
 
 # --- Link Manager --------------------------------------------------------
