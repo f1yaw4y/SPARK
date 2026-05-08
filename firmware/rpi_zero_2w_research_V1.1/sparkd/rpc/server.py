@@ -9,7 +9,7 @@ Protocol:
 - Authentication via Unix permissions
 
 Security:
-- Socket only accessible to owner (0600)
+- Socket 0660 with group dialout or spark so local CLI users need not be root
 - No network exposure
 - Simple request/response model
 """
@@ -124,10 +124,21 @@ class RPCServer:
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._socket.bind(str(self._socket_path))
         
-        # Set permissions: owner + group only (0660).
-        # The install script adds users to the 'spark' group for access.
+        # 0660: read/write for owner and group. Set group to spark or dialout
+        # so non-root users (e.g. pi) can use meshctl without sudo.
         os.chmod(self._socket_path, stat.S_IRUSR | stat.S_IWUSR |
                  stat.S_IRGRP | stat.S_IWGRP)
+        try:
+            import grp
+            for group_name in ("dialout", "spark"):
+                try:
+                    gid = grp.getgrnam(group_name).gr_gid
+                    os.chown(str(self._socket_path), -1, gid)
+                    break
+                except (KeyError, OSError):
+                    continue
+        except Exception:
+            pass
         
         # Listen
         self._socket.listen(5)
