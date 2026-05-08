@@ -290,7 +290,7 @@ class MeshCtl:
         
         return self._wait_for_delivery(message_id)
     
-    def _wait_for_delivery(self, message_id: str, timeout: int = 10) -> int:
+    def _wait_for_delivery(self, message_id: str, timeout: int = 25) -> int:
         """Poll for a delivery receipt.
         
         Args:
