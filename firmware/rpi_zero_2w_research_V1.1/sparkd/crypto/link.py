@@ -103,15 +103,15 @@ class LinkSession:
     def channel_binding(self, our_node_id: bytes, peer_node_id: bytes) -> bytes:
         """Compute a channel-binding token for MITM detection.
         
-        Both sides compute BLAKE2b(tx_key || rx_key || sorted(nodeA, nodeB)).
-        If a MITM relays between two independent DH sessions, the keys
-        won't match and the binding tokens will differ.
-        
+        Both sides compute BLAKE2b(sorted(tx_key, rx_key) || sorted(nodeA, nodeB)).
+        Keys are sorted so initiator/responder role (which swaps tx/rx assignment)
+        still yields the same binding token.
+
         Returns a 16-byte binding token.
         """
-        # Sort node IDs so both sides produce the same input
+        keys = sorted([self.tx_key, self.rx_key])
         ids = sorted([our_node_id, peer_node_id])
-        material = self.tx_key + self.rx_key + ids[0] + ids[1]
+        material = keys[0] + keys[1] + ids[0] + ids[1]
         return blake2b_hash(material, digest_size=16, person=b"spark-linkbind")
 
     def ratchet(self, new_shared_secret: bytes) -> None:
@@ -177,7 +177,7 @@ def build_handshake() -> Tuple[X25519PrivateKey, bytes]:
     The handshake_bytes are broadcast over LoRa (33 bytes total).
     """
     private = X25519PrivateKey.generate()
-    public = private.public_bytes(
+    public = private.public_key().public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw,
     )
@@ -211,7 +211,8 @@ def complete_handshake(
     Args:
         our_private: Our ephemeral X25519 private key
         their_public_bytes: Peer's ephemeral X25519 public key (32 bytes)
-        we_are_initiator: True if we sent the first handshake
+        we_are_initiator: True selects HKDF init vs resp role; must differ on
+            the two peers — we set this from lexicographic pubkey comparison.
 
     Returns:
         LinkSession with derived keys
@@ -275,13 +276,13 @@ class LinkManager:
     def generate_handshake(self) -> bytes:
         """Generate a handshake beacon to broadcast."""
         private, handshake_bytes = build_handshake()
-        # Store our ephemeral private key for when we get a response
         ephemeral_pub = handshake_bytes[1:33]
+        # Only one outstanding initiator ephemeral may be valid: a response
+        # must pair with the beacon the peer actually received. Accumulating
+        # one key per beacon causes complete_incoming_response to use an
+        # arbitrary stale private key and derive wrong link material.
+        self._pending_handshakes.clear()
         self._pending_handshakes[ephemeral_pub] = private
-        # Limit pending handshakes
-        if len(self._pending_handshakes) > MAX_LINK_SESSIONS:
-            oldest = next(iter(self._pending_handshakes))
-            del self._pending_handshakes[oldest]
         return handshake_bytes
 
     def handle_handshake(self, handshake_data: bytes) -> Optional[bytes]:
@@ -306,9 +307,22 @@ class LinkManager:
         # Enforce session cap -- evict oldest before adding
         self._enforce_session_cap()
 
-        # Generate our response and complete the DH exchange
+        # Reuse our last beacon ephemeral when present so the peer's
+        # complete_incoming_response pairs with the same key we advertised.
+        # Otherwise both sides generate fresh keys and derive mismatching secrets
+        # when they have each other's beacons (no complementary initiator/responder).
+        if self._pending_handshakes:
+            our_pub, our_priv = next(iter(self._pending_handshakes.items()))
+            we_are_initiator = our_pub < their_pubkey
+            session = complete_handshake(our_priv, their_pubkey, we_are_initiator)
+            self._sessions[their_pubkey] = session
+            self._pending_handshakes.pop(our_pub, None)
+            return bytes([HANDSHAKE_MARKER]) + our_pub
+
         our_private, response_bytes = build_handshake()
-        session = complete_handshake(our_private, their_pubkey, we_are_initiator=False)
+        our_pub = response_bytes[1:33]
+        we_are_initiator = our_pub < their_pubkey
+        session = complete_handshake(our_private, their_pubkey, we_are_initiator)
         self._sessions[their_pubkey] = session
 
         return response_bytes
@@ -329,9 +343,10 @@ class LinkManager:
         # Enforce session cap before adding
         self._enforce_session_cap()
 
-        # Find which of our pending handshakes this responds to
+        # With generate_handshake replacing pending, at most one matches.
         for our_pub, our_priv in list(self._pending_handshakes.items()):
-            session = complete_handshake(our_priv, their_pubkey, we_are_initiator=True)
+            we_are_initiator = our_pub < their_pubkey
+            session = complete_handshake(our_priv, their_pubkey, we_are_initiator)
             self._sessions[their_pubkey] = session
             del self._pending_handshakes[our_pub]
             return True
@@ -356,8 +371,14 @@ class LinkManager:
         if session is None:
             return False
         
-        # Channel binding verification (MITM detection)
-        if channel_binding_token and len(channel_binding_token) == 16:
+        # Channel binding verification (MITM detection). All-zero token means
+        # the sender does not yet know our node id (first identity flight);
+        # skip verification in that case.
+        if (
+            channel_binding_token
+            and len(channel_binding_token) == 16
+            and channel_binding_token != b"\x00" * 16
+        ):
             expected = session.channel_binding(
                 our_node_id=self._identity.node_id,
                 peer_node_id=node_id,
